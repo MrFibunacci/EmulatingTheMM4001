@@ -21,7 +21,19 @@ Stackpointer
 0001:	MOV
 0010:	INA
 0011:	STO
+    E1
+    01 => Autoinkrement Pointer
+    10 => Autodekrement Pointer
+    E2
+    Quellregister
+
 0100:	LOD
+    E1
+    Zielregister
+    E2
+    01 => Autoinkrement Pointer
+    10 => Autodekrement Pointer
+
 0101:	(ALU)
 0110:	(Jump-if-true)
 0111:	(Jump-if-false)

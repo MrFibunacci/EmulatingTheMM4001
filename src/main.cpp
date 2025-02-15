@@ -3,6 +3,7 @@
 #define MEMORY_MAX (1 << 8)
 
 u_int8_t memory[MEMORY_MAX];
+u_int8_t ram[MEMORY_MAX];
 
 enum Registers
 {
@@ -82,7 +83,7 @@ int read_image(const char* image_path)
     return 1;
 }
 
-void memory_read(u_int8_t address, u_int8_t val)
+void memory_write(u_int8_t address, u_int8_t val)
 {
     memory[address] = val;
 }
@@ -90,6 +91,53 @@ void memory_read(u_int8_t address, u_int8_t val)
 u_int8_t memory_read(u_int8_t address)
 {
     return memory[address];
+}
+
+void ram_write(u_int8_t address, u_int8_t val)
+{
+    ram[address] = val;
+}
+
+u_int8_t ram_read(u_int8_t address)
+{
+    return ram[address];
+}
+
+// return both Pointer registers as one 8-Bit value
+u_int8_t pointerHL()
+{
+	return (u_int8_t) (registers[Registers::PH] << 4) + registers[Registers::PL];
+}
+
+// save 8-Bit val to both Pointer registers
+void pointerHL_store(u_int8_t val)
+{
+	registers[Registers::PH] = val >> 4;
+	registers[Registers::PL] = val & 0x0f;
+}
+
+void autoIncDecPointer(u_int8_t E)
+{
+	u_int8_t pointerReg = pointerHL();
+
+	if (E == 1)
+	{
+		pointerHL_store(++pointerReg);
+	} else if (E == 2) 
+	{
+		pointerHL_store(--pointerReg);
+	}
+}
+
+void printRAM()
+{
+	printf("RAM Content (16x16): \n");
+	for (int i = 0; i < MEMORY_MAX; i++)
+	{
+		printf("%01x ", ram[i]);
+		if(i%16 == 15) {printf("\n");}
+	}
+	printf("\n\n");
 }
 
 int main(int argc, const char* argv[])
@@ -127,9 +175,15 @@ int main(int argc, const char* argv[])
 		u_int8_t E2 = instruction & 0x03;
 
 		system("clear");
-		printf("Reg A: %i\n", registers[Registers::A]);
-		printf("Reg d: %i\n", registers[Registers::D]);
-		printf("Inst: %04X\n", instruction);
+		printRAM();
+		printf("Reg A: %01X\n", registers[Registers::A]);
+		printf("Reg d: %01X\n", registers[Registers::D]);
+		printf("Reg PH/L: %02X", pointerHL());
+		printf(" - Adress value: %01X\n", ram_read(pointerHL()));
+		printf("Reg SP: %01X\n", registers[Registers::SP]);
+		printf("Reg PC: %01X\n", registers[Registers::PC]);
+		printf("Reg FLG: %01X\n", registers[Registers::FLG]);
+		printf("\nInst: %02X\n", instruction);
 		printf("E1: %i ", E1);
 		printf("E2: %i\n", E2);
 		getchar();
@@ -146,9 +200,20 @@ int main(int argc, const char* argv[])
 		case Opcodes::MOV:
 			registers[E1] = registers[E2];
 			break;
+
+		case Opcodes::STO:
+			ram_write(pointerHL(), registers[E2]);
+			autoIncDecPointer(E1);
+			break;
+
+		case Opcodes::LOD:
+			registers[E1] = ram_read(pointerHL());
+			autoIncDecPointer(E2);
+			break;
 		
 		case Opcodes::HLT:
 			isRunning = false;
+			break;
 		default:
 			//bad OP
 			break;
