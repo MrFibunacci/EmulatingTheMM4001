@@ -4,6 +4,7 @@
 
 u_int8_t memory[MEMORY_MAX];
 u_int8_t ram[MEMORY_MAX];
+u_int8_t stack[MEMORY_MAX];
 
 enum Reg
 {
@@ -129,15 +130,15 @@ void autoIncDecPointer(u_int8_t E)
 	}
 }
 
-void printRAM()
+void printMEM(u_int8_t mem[])
 {
-	printf("RAM Content (16x16): \n");
+	printf("Memory Content (16x16): \n");
 	for (int i = 0; i < MEMORY_MAX; i++)
 	{
-		printf("%01x ", ram[i]);
+		printf("%01x ", mem[i]);
 		if(i%16 == 15) {printf("\n");}
 	}
-	printf("\n\n");
+	printf("\n");
 }
 
 void setFlag(Flags flag, bool val = 1) 
@@ -187,6 +188,7 @@ int main(int argc, const char* argv[])
 	bool isRunning = true;
 
 	registers[Reg::PC] = 0;
+	registers[Reg::SP] = 0;
 	
 	while (isRunning)
 	{
@@ -196,7 +198,9 @@ int main(int argc, const char* argv[])
 		u_int8_t E2 = instruction & 0x03;
 
 		system("clear");
-		printRAM();
+		printMEM(ram);
+		printf("----------------------\n");
+		printMEM(stack);
 		printf("Reg A: %01X\n", registers[Reg::A]);
 		printf("Reg d: %01X\n", registers[Reg::D]);
 		printf("Reg PH/L: %02X", pointerHL());
@@ -305,6 +309,14 @@ int main(int argc, const char* argv[])
 			// TODO: should flag be reset after jump occours?
 		case Opcodes::JIF:
 			if (!getFlag((Flags)((E1 << 2)+E2))) { registers[Reg::PC] = pointerHL(); }
+			break;
+		case Opcodes::PUSH:
+			stack[registers[Reg::SP]] = registers[Reg::A];
+			++registers[Reg::SP];
+			break;
+		case Opcodes::POP:
+			--registers[Reg::SP];	
+			registers[Reg::A] = stack[registers[Reg::SP]];
 			break;
 		case Opcodes::HLT:
 			isRunning = false;
