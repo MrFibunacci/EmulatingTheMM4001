@@ -1,10 +1,19 @@
+#include <cstdint>
 #include <iostream>
+
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__TOS_WIN__) || defined(__WINDOWS__)
+#define CLEAR "cls"
+#else
+#define CLEAR "clear"
+#endif
 
 #define MEMORY_MAX (1 << 8)
 
-u_int8_t memory[MEMORY_MAX];
-u_int8_t ram[MEMORY_MAX];
-u_int8_t stack[MEMORY_MAX];
+using byte = uint8_t;
+
+byte memory[MEMORY_MAX];
+byte ram[MEMORY_MAX];
+byte stack[MEMORY_MAX];
 
 enum Reg
 {
@@ -68,11 +77,11 @@ enum ALU_Opcodes
 };
 
 // the registers actually only hold a nibble but c++ can't represent that.
-u_int8_t registers[Reg::COUNT];
+byte registers[Reg::COUNT];
 
 void read_image_file(FILE* file)
 {
-    fread(memory, sizeof(u_int8_t), MEMORY_MAX, file);
+    fread(memory, sizeof(byte), MEMORY_MAX, file);
 }
 
 int read_image(const char* image_path)
@@ -84,42 +93,42 @@ int read_image(const char* image_path)
     return 1;
 }
 
-void memory_write(u_int8_t address, u_int8_t val)
+void memory_write(byte address, byte val)
 {
     memory[address] = val;
 }
 
-u_int8_t memory_read(u_int8_t address)
+byte memory_read(byte address)
 {
     return memory[address];
 }
 
-void ram_write(u_int8_t address, u_int8_t val)
+void ram_write(byte address, byte val)
 {
     ram[address] = val;
 }
 
-u_int8_t ram_read(u_int8_t address)
+byte ram_read(byte address)
 {
     return ram[address];
 }
 
 // return both Pointer registers as one 8-Bit value
-u_int8_t pointerHL()
+byte pointerHL()
 {
-	return (u_int8_t) (registers[Reg::PH] << 4) + registers[Reg::PL];
+	return (byte) (registers[Reg::PH] << 4) + registers[Reg::PL];
 }
 
 // save 8-Bit val to both Pointer registers
-void pointerHL_store(u_int8_t val)
+void pointerHL_store(byte val)
 {
 	registers[Reg::PH] = val >> 4;
 	registers[Reg::PL] = val & 0x0f;
 }
 
-void autoIncDecPointer(u_int8_t E)
+void autoIncDecPointer(byte E)
 {
-	u_int8_t pointerReg = pointerHL();
+	byte pointerReg = pointerHL();
 
 	if (E == 1)
 	{
@@ -130,7 +139,7 @@ void autoIncDecPointer(u_int8_t E)
 	}
 }
 
-void printMEM(u_int8_t mem[])
+void printMEM(byte mem[])
 {
 	printf("Memory Content (16x16): \n");
 	for (int i = 0; i < MEMORY_MAX; i++)
@@ -141,7 +150,7 @@ void printMEM(u_int8_t mem[])
 	printf("\n");
 }
 
-void setFlag(Flags flag, bool val = 1) 
+void setFlag(const Flags flag, const bool val = true)
 {
 	if(val) {
 		registers[Reg::FLG] = registers[Reg::FLG] | flag;
@@ -150,9 +159,9 @@ void setFlag(Flags flag, bool val = 1)
 	}
 }
 
-bool getFlag(Flags flag)
+bool getFlag(const Flags flag)
 {
-	u_int8_t flagPos;
+	byte flagPos = 0;
 
 	if (flag == Flags::B) {flagPos = 3;}
 	else if (flag == Flags::C) {flagPos = 2;}
@@ -192,28 +201,28 @@ int main(int argc, const char* argv[])
 	
 	while (isRunning)
 	{
-		u_int8_t instruction = memory_read(registers[Reg::PC]++);
-		u_int8_t opcode = instruction >> 4;
-		u_int8_t E1 = (instruction & 0x0c) >> 2;
-		u_int8_t E2 = instruction & 0x03;
+		const byte instruction = memory_read(registers[Reg::PC]++);
+		const byte opcode = instruction >> 4;
+		const byte E1 = (instruction & 0x0c) >> 2;
+		const byte E2 = instruction & 0x03;
 
-		system("clear");
-		printMEM(ram);
-		printf("----------------------\n");
-		printMEM(stack);
-		printf("Reg A: %01X\n", registers[Reg::A]);
-		printf("Reg d: %01X\n", registers[Reg::D]);
-		printf("Reg PH/L: %02X", pointerHL());
-		printf(" - Adress value: %01X\n", ram_read(pointerHL()));
-		printf("Reg SP: %01X\n", registers[Reg::SP]);
-		printf("Reg PC: %01X\n", registers[Reg::PC]);
-		printf("Reg FLG: %01X\n", registers[Reg::FLG]);
-		printf("B C G E\n");
-		printf("%i %i %i %i", getFlag(Flags::B), getFlag(Flags::C), getFlag(Flags::G), getFlag(Flags::E));
-		printf("\nInst: %02X\n", instruction);
-		printf("E1: %i ", E1);
-		printf("E2: %i\n", E2);
-		getchar();
+		// system(CLEAR);
+		// printMEM(ram);
+		// printf("----------------------\n");
+		// printMEM(stack);
+		// printf("Reg A: %01X\n", registers[Reg::A]);
+		// printf("Reg d: %01X\n", registers[Reg::D]);
+		// printf("Reg PH/L: %02X", pointerHL());
+		// printf(" - Adress value: %01X\n", ram_read(pointerHL()));
+		// printf("Reg SP: %01X\n", registers[Reg::SP]);
+		// printf("Reg PC: %01X\n", registers[Reg::PC]);
+		// printf("Reg FLG: %01X\n", registers[Reg::FLG]);
+		// printf("B C G E\n");
+		// printf("%i %i %i %i", getFlag(Flags::B), getFlag(Flags::C), getFlag(Flags::G), getFlag(Flags::E));
+		// printf("\nInst: %02X\n", instruction);
+		// printf("E1: %i ", E1);
+		// printf("E2: %i\n", E2);
+		// getchar();
 
 		switch (opcode)
 		{
